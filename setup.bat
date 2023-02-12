@@ -26,16 +26,15 @@ call venv\Scripts\activate
 rem Upgrade PIP
 python -m pip install --upgrade pip
 
+set cuVersion=117
+set torchVersion=1.13.1+%cuVersion%
+set torchVisionVersion=0.14.1+%cuVersion%
 
-set cuVersion=116
-set torchVersion=1.12.1+(%cuVersion%)
-set torchVisionVersion=0.13.1+(%cuVersion%)
-
-choice /c yn /d y /m "Do you want to run with torch 1.13[Y] or 1.12[N]?"
-if ERRORLEVEL 1 (
-    set cuVersion=117
-    set torchVersion=1.13.1+(%cuVersion%)
-    set torchVisionVersion=0.14.1+(%cuVersion%)
+choice /c Yn y /m "Do you want to run with updated torch(1.13)?"
+if ERRORLEVEL 2 (
+    set cuVersion=116
+    set torchVersion=1.12.1+%cuVersion%
+    set torchVisionVersion=0.13.1+%cuVersion%
 )
 
 echo installing dependancies, this may take a while
@@ -55,7 +54,7 @@ copy bitsandbytes_windows\*.dll venv\Lib\site-packages\bitsandbytes > nul
 copy bitsandbytes_windows\cextension.py venv\Lib\site-packages\bitsandbytes > nul
 copy bitsandbytes_windows\main.py venv\Lib\site-packages\bitsandbytes\cuda_setup > nul
 
-choice /C YN /M "Do you want to install the optional cudnn1.8 for faster training on high end 30X0 and 40X0 cards?"
+choice /C Yn /M "Do you want to install the optional cudnn1.8 for faster training on high end 30X0 and 40X0 cards?"
 if ERRORLEVEL 2 goto complete
 
 echo installing cudnn1.8 for faster training on 40X0 cards
@@ -67,7 +66,7 @@ rmdir cudnn_windows /s /q
 goto complete
 
 :pascalFix
-choice /C YN /M "Do you have a 10X0 card?"
+choice /C Yn /M "Do you have a 10X0 card?"
 if ERRORLEVEL 2 goto complete
 
 echo installing 10X0 card fix
