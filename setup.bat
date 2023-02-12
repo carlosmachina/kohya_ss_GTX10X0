@@ -112,6 +112,8 @@ echo Can't continue as you do not have git installed, please install it and ensu
 goto end
 
 :complete
+echo running accelerate config
+accelerate config > nul
 echo installation complete, to run the program run gui.bat
 
 :end
