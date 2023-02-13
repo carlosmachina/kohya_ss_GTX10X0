@@ -196,8 +196,8 @@ function Install-10X0Patch {
 Write-Host "Kohya_ss GTX 10X0 Setup"`n -ForegroundColor Yellow
 
 Write-Host `n"Checking for security clearances"`n -ForegroundColor Yellow
-<# Set-UnrestrictedPolicy #>
-<# Test-Admin #>
+Set-UnrestrictedPolicy
+Test-Admin
 
 Write-Host `n"Checking environment"`n -ForegroundColor Yellow
 Test-Git
