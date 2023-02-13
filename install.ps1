@@ -1,4 +1,4 @@
-$versionSettings = [PSCustomObject]@{
+$settings = [PSCustomObject]@{
     TorchVersion       = "1.13.1"
     TorchVisionVersion = "0.14.1"
     CudaVersion        = "cu116"
@@ -12,21 +12,27 @@ function Exit-Key {
     if (Test-Path env:VIRTUAL_ENV) {
         deactivate
     }
-
     exit
 }
 
-function Test-Admin {
-    if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-        $arguments = "& '" + $myInvocation.MyCommand.Definition + "'"
-        Start-Process powershell -Verb runAs -ArgumentList $arguments
-        return
-    }
+function Read-AdminRights {
+    return ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')
 }
 
-function Set-UnrestrictedPolicy {
-    Write-Host "Setting execution policy to unrestricted"
-    PowerShell -NoProfile -ExecutionPolicy Bypass -Command "& {Start-Process PowerShell -ArgumentList 'Set-ExecutionPolicy Unrestricted -Force' -Verb RunAs}"
+function Set-ExecutionPolicy {
+    $options = @("&Yes", "&No")
+    $selectedOption = (Get-Host).UI.PromptForChoice("Elevate and set execution policy", "Do you wish to continue?", $options, 1)
+    
+    if ($selectedOption -eq 0) {
+        if (!(Read-AdminRights)) {
+            if ([int](Get-CimInstance -Class Win32_OperatingSystem | Select-Object -ExpandProperty BuildNumber) -ge 6000) {
+                PowerShell -NoProfile -ExecutionPolicy Bypass -Command "& {Start-Process PowerShell -ArgumentList 'Set-ExecutionPolicy Unrestricted -Force' -Verb RunAs}"
+            }
+        }
+    }
+    else {
+        Exit-Key
+    }
 }
 
 function Test-Git {
@@ -50,7 +56,7 @@ function Test-Python {
         if ($pythonLmError) {
             Write-Host "Can't continue as you do not have python 3.10 installed. `
                         Please install python 3.10 and ensure you select the 'add to path' option then run this script again." `
-                        -ForegroundColor Red
+                -ForegroundColor Red
 
             
             Exit-Key
@@ -102,8 +108,8 @@ function Set-TorchVersion {
     $result = $host.ui.PromptForChoice($title, $message, $options, 1)
 
     if ($result -eq 0) {
-        $versionSettings.TorchVersion = "1.12.1"
-        $versionSettings.TorchVisionVersion = "0.13.1"
+        $settings.TorchVersion = "1.12.1"
+        $settings.TorchVisionVersion = "0.13.1"
     }
 }
 
@@ -122,7 +128,7 @@ function Set-CudaVersion {
     $result = $host.ui.PromptForChoice($title, $message, $options, 0)
 
     if ($result -eq 1) {
-        $versionSettings.CudaVersion = "cu117"
+        $settings.CudaVersion = "cu117"
     }
 }
 
@@ -141,13 +147,18 @@ function Set-XformersVersion {
     $result = $host.ui.PromptForChoice($title, $message, $options, 0)
 
     if ($result -eq 1) {
-        $versionSettings.CudaVersion = "public"
+        $settings.CudaVersion = "public"
     }
 }
 
 function Install-Torch {
-    Write-Host "installing torch $torchVersion"
-    pip install torch==$torchVersion+$cudaVersion torchvision==$torchVisionVersion+$cudaVersion --extra-index-url "https://download.pytorch.org/whl/$cudaVersion"
+    $torch = "$($settings.TorchVersion)+$($settings.CudaVersion)"
+    $vision = "$($settings.TorchVisionVersion)+$($settings.CudaVersion)"
+    $cudaUrl = "https://download.pytorch.org/whl/$($settings.CudaVersion)"
+
+    Write-Host "Installing torch $($settings.TorchVersion)" 
+
+    pip install torch==$torch torchvision==$vision --extra-index-url $cudaUrl
 }
 
 function Install-Requirements {
@@ -157,7 +168,7 @@ function Install-Requirements {
 
 function Install-Xformers {
     Write-Host "Installing xformers"
-    if ($versionSettings.Xformers -eq "dev0") {
+    if ($settings.Xformers -eq "dev0") {
         pip install -U -I --no-deps https://github.com/C43H66N12O12S2/stable-diffusion-webui/releases/download/torch13/xformers-0.0.14.dev0-cp310-cp310-win_amd64.whl
     }
     else {
@@ -195,9 +206,13 @@ function Install-10X0Patch {
 
 Write-Host "Kohya_ss GTX 10X0 Setup"`n -ForegroundColor Yellow
 
-Write-Host `n"Checking for security clearances"`n -ForegroundColor Yellow
-Set-UnrestrictedPolicy
-Test-Admin
+Write-Host `n"This script needs to set execution policies"
+Write-Host "To do that, it will launch a new PS windows as administrator and set the policy"`n
+
+Set-ExecutionPolicy
+
+
+
 
 Write-Host `n"Checking environment"`n -ForegroundColor Yellow
 Test-Git
@@ -224,4 +239,3 @@ Write-Host `n"Accelerate Config"`n -ForegroundColor Yellow
 & accelerate config
 
 Exit-Key
-
