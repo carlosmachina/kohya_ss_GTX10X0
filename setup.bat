@@ -51,7 +51,7 @@ pip install --use-pep517 --upgrade -r requirements.txt > nul
 
 echo:
 echo installing xformers
-pip install install -U -I --no-deps xformers==0.0.16rc425 > nul
+pip install -U -I --no-deps xformers==0.0.16rc425 > nul
 
 echo:
 echo moving required bitsandbytes files
